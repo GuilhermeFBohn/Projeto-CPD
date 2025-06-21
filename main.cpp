@@ -97,7 +97,7 @@ class Movie
 
 //---|Hashtable|---
 const int HASHSIZE = 30000;
-Movie* moviesHashTable[HASHSIZE];
+list<Movie*> moviesHashTable[HASHSIZE];
 
 //Functions
 int hashFunction(int id)
@@ -110,15 +110,20 @@ void insertMovie(int id, string title, string genres, int year)
 	int i = hashFunction(id);
 	Movie* newMovie = new Movie(id, title, genres, year);
 
-	if (moviesHashTable[i] == nullptr)
+	moviesHashTable[i].push_back(newMovie);
+}
+
+Movie* findMovie(int id)
+{
+	int i = hashFunction(id);
+	for (Movie* movie : moviesHashTable[i])
 	{
-		moviesHashTable[i] = newMovie;
+		if (movie->getId() == id)
+		{
+			return movie;
+		}
 	}
-	else
-	{
-		//Collision Handling
-		cout << "Colisão no índice " << i << " para o id " << id << endl;
-	}
+	return nullptr;
 }
 
 void loadMovies(const string& path)
@@ -182,23 +187,21 @@ int main()
 
 
 
-	int n;
-
-	for (int i = 0; i < HASHSIZE; i++)
-	{
-		moviesHashTable[i] = nullptr;
-	}
+	int id;
 
 	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
 
 
-
 	//Acessing a movie
-	n = 1;
-	Movie* m = moviesHashTable[hashFunction(n)];
+	id = 1;
+	Movie* m = findMovie(id);
 	if (m != nullptr)
 	{
 		cout << "Filme: " << m->getTitle() << " (" << m->getYear() << ")" << endl;
+	}
+	else
+	{
+		cout << "Filme com ID " << id << " não encontrado.\n";
 	}
 
 	return 0;
