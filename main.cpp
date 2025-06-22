@@ -7,41 +7,6 @@
 using namespace std;
 using namespace aria::csv;
 
-/* Rascunho de Hash Table
-class HashTable {
-	private:
-		static const int hashGroups = 10;
-		list<pair<int, string>> table[hashGroups];
-	public:
-		bool isEmpty();
-		int hashFunction(int key);
-		void insertItem(int key, string value);
-		void removeItem(int key);
-		string searchTable(int key);
-		void printTable();
-
-}
-
-bool HashTable::isEmpty(){
-	int sum{};
-	for (int i{}; i < hashGroups; i++)
-	{
-		sum += table[i].size();
-	}
-
-	if (!sum)
-	{
-		return true;
-	}
-	return false;
-}
-
-int HashTable::hashFunction(int key){
-	return 0;
-}
-
-*/
-
 //---|TRIE Tree|---
 
 struct TrieNode
@@ -68,7 +33,11 @@ void insertTitle(TrieNode* root, const string& title, int movieId)
 	TrieNode* node = root;
 	for (char ch : title)
 	{
-		int i = (int)ch;
+		int i = (unsigned char)ch;
+		if (i < 0 || i >= 128)
+		{
+			continue;
+		}
 		if (node->children[i] == nullptr)
 		{
 			node->children[i] = new TrieNode();
@@ -105,8 +74,8 @@ void findPrefix(TrieNode* root, const string& prefix, list<int>& ids)
 	TrieNode* node = root;
 	for (char ch : prefix)
 	{
-		int i = (int)ch;
-		if (node->children[i] == nullptr)
+		int i = (unsigned char)ch;
+		if (i < 0 || i >= 128 || node->children[i] == nullptr)
 		{
 			return;
 		}
@@ -124,8 +93,8 @@ class Movie
 		string title;
 		string genres;
 		int year;
-		int reviews;
-		float reviewsum;
+		int reviews = 0;
+		float reviewsum = 0.0f;
 	public:
 		//Constructor
 		Movie(int ID, string TITLE, string GENRES, int YEAR)
@@ -168,11 +137,22 @@ class Movie
 		{
 			return year;
 		}
+		void addReview(float rating)
+		{
+			reviews++;
+			reviewsum += rating;
+		}
+
+		float getAverage()
+		{
+			return reviews == 0 ? 0.0f : reviewsum / reviews;
+		}
 };
 
 //---|Hashtable|---
 const int HASHSIZE = 30000;
 list<Movie*> moviesHashTable[HASHSIZE];
+list<pair<int, float>> userRatingsTable[HASHSIZE];
 
 //Functions
 int hashFunction(int id)
@@ -241,43 +221,67 @@ void loadMovies(const string& path)
 
 }
 
+void loadRatings(const string& path)
+{
+	ifstream file(path);
+	if (!file.is_open())
+	{
+		cerr << "Erro ao abrir o arquivo: " << path << endl;
+		return;
+	}
+	file.peek();
+	if (file.fail())
+	{
+		cerr << "Arquivo está corrompido ou ilegível: " << path << endl;
+		return;
+	}
+	CsvParser parser(file);
+	bool first = true;
+	for (auto& row : parser)
+	{
+		if (first)
+		{
+			first = false;
+			continue;
+		}
+		int userId = stoi(row[0]);
+		int movieId = stoi(row[1]);
+		float rating = stof(row[2]);
+		userRatingsTable[hashFunction(userId)].push_back({movieId, rating});
+		Movie* m = findMovie(movieId);
+		if (m)
+		{
+			m->addReview(rating);
+		}
+	}
+}
 
+void consultaUsuario(int userId)
+{
+	int i = hashFunction(userId);
+	cout << "Filmes avaliados pelo usuário" << userId << ":\n";
+	for (auto& p : userRatingsTable[i])
+	{
+		if (Movie* m = findMovie(p.first))
+		{
+			cout << "- " << m->getTitle() << " (" << m->getYear() << ") Nota: " << p.second << endl;
+		}
+	}
+}
 
 int main() 
 {
-	/* Rascunhos de codigo
-	std::ifstream f("some_file.csv");
-	CsvParser parser(f);
-
-	std::cout << "Hello, world!";
-
-	int array[20] = {};
-	*/
-
-	//Clearing hashtable
-	/* Mais rascunho de codigo
-	for (int i = 0; i < HASHSIZE; i++)
-	{
-    	moviesHashTable[i] = NULL;
-	}
-	*/
-
-	cout << "Executando em: " << std::filesystem::current_path() << endl;
-
-
-
 	int id;
 	string prefix;
 
 	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
+	loadRatings("../Data/dados-trabalho-pequeno/miniratings.csv");
 
-
-	//Acessing a movie
 	id = 1;
-	Movie* m = findMovie(id);
-	if (m != nullptr)
+	if (Movie* m = findMovie(id))
 	{
 		cout << "Filme: " << m->getTitle() << " (" << m->getYear() << ")" << endl;
+		cout << "Nota média: " << m->getAverage() << endl;
 	}
 	else
 	{
@@ -299,15 +303,17 @@ int main()
 		cout << "Filmes encontrados: " << endl;
 		for (int ID : resultados)
 		{
-			for (Movie* m : moviesHashTable[hashFunction(ID)])
+			if (Movie* m = findMovie(ID))
 			{
-				if (m->getId() == ID)
-				{
-					cout << "- " << m->getTitle() << " (" << m->getYear() << ")" << endl;
-				}
+				cout << "- " << m->getTitle() << " (" << m->getYear() << ")\n";
 			}
 		}
 	}
+
+	cout << "\nDigite um ID de usuário para ver seus filmes avaliados: ";
+	int uid;
+	cin >> uid;
+	consultaUsuario(uid);
 
 	return 0;
 }
