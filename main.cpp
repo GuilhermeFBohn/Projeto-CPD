@@ -42,6 +42,81 @@ int HashTable::hashFunction(int key){
 
 */
 
+//---|TRIE Tree|---
+
+struct TrieNode
+{
+	TrieNode* children[128];
+	bool isEnd;
+	int movieId;
+
+	TrieNode()
+	{
+		for (int i = 0; i < 128;i++)
+		{
+			children[i] = nullptr;
+		}
+		isEnd = false;
+		movieId = -1;
+	}
+};
+
+TrieNode* trieRoot = new TrieNode();
+
+void insertTitle(TrieNode* root, const string& title, int movieId)
+{
+	TrieNode* node = root;
+	for (char ch : title)
+	{
+		int i = (int)ch;
+		if (node->children[i] == nullptr)
+		{
+			node->children[i] = new TrieNode();
+		}
+		node = node->children[i];
+	}
+	node->isEnd = true;
+	node->movieId = movieId;
+}
+
+void listIds(TrieNode* node, list<int>& ids)
+{
+	if (node == nullptr)
+	{
+		return;
+	}
+	if (node->isEnd)
+	{
+		ids.push_back(node->movieId);
+	}
+
+	for (int i = 0; i < 128; i++)
+	{
+		if (node->children[i])
+		{
+			listIds(node->children[i], ids);
+		}
+	}
+
+}
+
+void findPrefix(TrieNode* root, const string& prefix, list<int>& ids)
+{
+	TrieNode* node = root;
+	for (char ch : prefix)
+	{
+		int i = (int)ch;
+		if (node->children[i] == nullptr)
+		{
+			return;
+		}
+		node = node->children[i];
+	}
+	listIds(node, ids);
+}
+
+
+
 class Movie
 {
 	private:
@@ -159,10 +234,14 @@ void loadMovies(const string& path)
 		int year = stoi(row[3]);
 
 		insertMovie(id, title, genres, year);
-
+		insertTitle(trieRoot, title, id);
+		//Teste
+		cout << "Inserido: " << title << " (ID: " << id << ")\n";
 	}
 
 }
+
+
 
 int main() 
 {
@@ -188,6 +267,7 @@ int main()
 
 
 	int id;
+	string prefix;
 
 	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
 
@@ -202,6 +282,31 @@ int main()
 	else
 	{
 		cout << "Filme com ID " << id << " não encontrado.\n";
+	}
+
+	cout << "Digite um prefixo para buscar filmes: ";
+	getline(cin, prefix);
+
+	list<int> resultados;
+	findPrefix(trieRoot, prefix, resultados);
+
+	if (resultados.empty())
+	{
+		cout << "Nenhum filme encontrado com esse prefixo" << endl;
+	}
+	else
+	{
+		cout << "Filmes encontrados: " << endl;
+		for (int ID : resultados)
+		{
+			for (Movie* m : moviesHashTable[hashFunction(ID)])
+			{
+				if (m->getId() == ID)
+				{
+					cout << "- " << m->getTitle() << " (" << m->getYear() << ")" << endl;
+				}
+			}
+		}
 	}
 
 	return 0;
