@@ -154,6 +154,9 @@ const int HASHSIZE = 30000;
 list<Movie*> moviesHashTable[HASHSIZE];
 list<pair<int, float>> userRatingsTable[HASHSIZE];
 
+const int TAG_HASHSIZE = 10007;
+list<pair<string, list<int>>> tagsTable[TAG_HASHSIZE];
+
 //Functions
 int hashFunction(int id)
 {
@@ -269,13 +272,95 @@ void consultaUsuario(int userId)
 	}
 }
 
+int hashTag(const string& tag)
+{
+	unsigned long hash = 5301;
+	for (char c : tag) hash = ((hash << 5) + hash) + c;
+	return hash % TAG_HASHSIZE;
+}
+
+void insertTag(const string& tag, int movieId)
+{
+	int i = hashTag(tag);
+	for (auto& p : tagsTable[i])
+	{
+		if (p.first == tag)
+		{
+			p.second.push_back(movieId);
+			return;
+		}
+	}
+	tagsTable[i].push_back({tag, {movieId}});
+}
+
+list<int> searchTag(const string& tag)
+{
+	int i = hashTag(tag);
+	for (auto& p : tagsTable[i])
+	{
+		if (p.first == tag)
+		{
+			return p.second;
+		}
+	}
+	return {};
+}
+
+void loadTags(const string& path)
+{
+	ifstream file(path);
+	if (!file.is_open())
+	{
+		cerr << "Erro ao abrir o arquivo: " << path << endl;
+		return;
+	}
+	file.peek();
+	if (file.fail())
+	{
+		cerr << "Arquivo corrompido: " << path << endl;
+		return;
+	}
+	CsvParser parser(file);
+	bool first = true;
+	for (auto& row : parser)
+	{
+		if (first)
+		{
+			first = false;
+			continue;
+		}
+		int movieId = stoi(row[1]);
+		string tag = row[2];
+		insertTag(tag, movieId);
+	}
+}
+
+void consultaTag(const string& tag)
+{
+	list<int> movies = searchTag(tag);
+	if (movies.empty())
+	{
+		cout << "Nenhum filme com essa tag.\n";
+		return;
+	}
+	cout << "Filmes com a tag '" << tag << "':\n";
+	for (int id : movies)
+	{
+		if (Movie* m = findMovie(id))
+		{
+			cout << "- " << m->getTitle() << " (" << m->getYear() << ")\n";
+		}
+	}
+}
+
 int main() 
 {
 	int id;
-	string prefix;
+	string prefix, tag;
 
 	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
 	loadRatings("../Data/dados-trabalho-pequeno/miniratings.csv");
+	loadTags("../Data/dados-trabalho-pequeno/minitags.csv");
 
 	id = 1;
 	if (Movie* m = findMovie(id))
@@ -313,7 +398,12 @@ int main()
 	cout << "\nDigite um ID de usuário para ver seus filmes avaliados: ";
 	int uid;
 	cin >> uid;
+	cin.ignore();
 	consultaUsuario(uid);
+
+	cout << "\nDigite uma tag para buscar filmes: ";
+	getline(cin, tag);
+	consultaTag(tag);
 
 	return 0;
 }
