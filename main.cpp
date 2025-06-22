@@ -360,7 +360,7 @@ int main()
 
 	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
 	loadRatings("../Data/dados-trabalho-pequeno/miniratings.csv");
-	loadTags("../Data/dados-trabalho-pequeno/minitags.csv");
+	loadTags("../Data/dados-trabalho-pequeno/tags.csv");
 
 	id = 1;
 	if (Movie* m = findMovie(id))
