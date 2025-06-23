@@ -4,6 +4,7 @@
 #include <cstring>
 #include <filesystem>
 #include "csv-parser\parser.hpp"
+#include <iomanip>
 using namespace std;
 using namespace aria::csv;
 
@@ -136,6 +137,10 @@ class Movie
 		int getYear()
 		{
 			return year;
+		}
+		int getReviewCount() const 
+		{
+			return reviews;
 		}
 		void addReview(float rating)
 		{
@@ -353,6 +358,57 @@ void consultaTag(const string& tag)
 	}
 }
 
+//-------------------------------------------
+//---------------| PESQUISAS |---------------
+//-------------------------------------------
+void prefixSearch(const string& prefix)
+{
+	list<int> ids;
+	findPrefix(trieRoot, prefix, ids);
+
+	if (ids.empty())
+	{
+		cout << "Nenhum filme encontrado com esse prefixo.\n";
+		return;
+	}
+
+	list<Movie*> movies;
+	for (int id : ids)
+	{
+		Movie* m = findMovie(id);
+		if (m)
+		{
+			movies.push_back(m);
+		}
+	}
+
+	movies.sort([](Movie* a, Movie* b){
+		return a->getAverage() > b->getAverage();
+	});
+
+	cout << left
+		 << setw(8)  << "ID"
+		 << setw(45) << "Title"
+		 << setw(35) << "Genres"
+		 << setw(6)  << "Year"
+		 << setw(10) << "Rating"
+		 << setw(6)  << "Count" << endl;
+
+	cout << string(110, '-') << endl;
+
+	for (Movie* m : movies)
+	{
+		cout << left
+		     << setw(8)  << m->getId()
+		     << setw(45) << m->getTitle().substr(0, 43)
+		     << setw(35) << m->getGenres().substr(0, 33)
+		     << setw(6)  << m->getYear()
+		     << setw(10) << fixed << setprecision(6) << m->getAverage()
+		     << setw(6)  << m->getReviewCount()
+		     << endl;
+	}
+}
+
 int main() 
 {
 	int id;
@@ -361,6 +417,10 @@ int main()
 	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
 	loadRatings("../Data/dados-trabalho-pequeno/miniratings.csv");
 	loadTags("../Data/dados-trabalho-pequeno/tags.csv");
+
+	//------| Menu |------
+
+	
 
 	id = 1;
 	if (Movie* m = findMovie(id))
@@ -373,6 +433,7 @@ int main()
 		cout << "Filme com ID " << id << " não encontrado.\n";
 	}
 
+	/*
 	cout << "Digite um prefixo para buscar filmes: ";
 	getline(cin, prefix);
 
@@ -394,6 +455,7 @@ int main()
 			}
 		}
 	}
+	*/
 
 	cout << "\nDigite um ID de usuário para ver seus filmes avaliados: ";
 	int uid;
