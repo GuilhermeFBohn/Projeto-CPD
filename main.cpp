@@ -361,6 +361,7 @@ void consultaTag(const string& tag)
 //-------------------------------------------
 //---------------| PESQUISAS |---------------
 //-------------------------------------------
+
 void prefixSearch(const string& prefix)
 {
 	list<int> ids;
@@ -409,10 +410,143 @@ void prefixSearch(const string& prefix)
 	}
 }
 
+void searchUserReviews(int userId)
+{
+	int i = hashFunction(userId);
+	list<pair<int, float>> reviews = userRatingsTable[i];
+
+	list<pair<int, float>> userMovies;
+	for (auto& p : reviews)
+	{
+		userMovies.push_back(p);
+	}
+
+	struct Output
+	{
+		int movieId;
+		string title;
+		string genres;
+		int year;
+		float globalAverage;
+		int count;
+		float userRating;
+	};
+
+	list<Output> results;
+
+	for (auto& p : userMovies)
+	{
+		Movie* m = findMovie(p.first);
+		if (m)
+		{
+			results.push_back({
+				m->getId(),
+				m->getTitle(),
+				m->getGenres(),
+				m->getYear(),
+				m->getAverage(),
+				m->getReviewCount(),
+				p.second
+			});
+		}
+	}
+
+	results.sort([](const Output& a, const Output& b)
+	{
+		if (a.userRating != b.userRating)
+			return a.userRating > b.userRating;
+		return a.globalAverage > b.globalAverage;
+	});
+
+	cout << left << setw(8) << "ID" 
+	     << setw(40) << "Título" 
+	     << setw(30) << "Gêneros" 
+	     << setw(6) << "Ano" 
+	     << setw(14) << "MédiaGlobal" 
+	     << setw(8) << "Count" 
+	     << setw(8) << "Nota" << endl;
+
+	int count = 0;
+	for (auto& r : results) 
+	{
+		cout << setw(8) << r.movieId 
+		     << setw(40) << r.title.substr(0, 39) 
+		     << setw(30) << r.genres.substr(0, 29) 
+		     << setw(6) << r.year 
+		     << setw(14) << fixed << setprecision(6) << r.globalAverage 
+		     << setw(8) << r.count 
+		     << setw(8) << fixed << setprecision(1) << r.userRating 
+		     << endl;
+
+		if (++count >= 20) break;
+	}
+}
+
+void searchbyGenres(const string& genre, int maxResults)
+{
+	list<Movie*> results;
+
+	for (int i = 0; i < HASHSIZE; i++)
+	{
+		for (Movie* m : moviesHashTable[i])
+		{
+			if (m->getReviewCount() >= 1000 && m->getGenres().find(genre) != string::npos)
+			{
+				results.push_back(m);
+			}
+		}
+	}
+
+	if (results.empty())
+	{
+		cout << "Nenhum filme encontrado" << endl;
+		return;
+	}
+
+	results.sort([](Movie * a, Movie * b)
+	{
+		return a->getAverage() > b->getAverage();
+	});
+
+	cout << left
+	     << setw(8)  << "ID"
+	     << setw(45) << "Title"
+	     << setw(35) << "Genres"
+	     << setw(6)  << "Year"
+	     << setw(10) << "Rating"
+	     << setw(6)  << "Count" << endl;
+
+	cout << string(110, '-') << endl;
+
+	int count = 0;
+	for (Movie* m : results)
+	{
+		cout << left
+		     << setw(8)  << m->getId()
+		     << setw(45) << m->getTitle().substr(0, 43)
+		     << setw(35) << m->getGenres().substr(0, 33)
+		     << setw(6)  << m->getYear()
+		     << setw(10) << fixed << setprecision(6) << m->getAverage()
+		     << setw(6)  << m->getReviewCount()
+		     << endl;
+
+		if (++count >= maxResults)
+		{
+			break;
+		}
+	}
+}
+
+void searchbyTags()
+{
+	cout << "placeholder";
+}
+
 int main() 
 {
-	int id;
-	string prefix, tag;
+	int id, sel, max;
+	string prefix, tag, genre, input;
+	bool quit = false;
 
 	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
 	loadRatings("../Data/dados-trabalho-pequeno/miniratings.csv");
@@ -420,6 +554,49 @@ int main()
 
 	//------| Menu |------
 
+	do
+	{
+		cout << "1) Pesquisar um filme" << endl;
+		cout << "2) Pesquisar as reviews de um usuário" << endl;
+		cout << "3) Pesquisar por genêro" << endl;
+		cout << "4) Pesquisar por tags" << endl;
+		cout << "5) Sair" << endl;
+		cin >> sel;
+		cin.ignore();
+
+		switch (sel)
+		{
+			case 1:
+				cout << "Digite o nome do filme: ";
+				getline(cin, prefix);
+				prefixSearch(prefix);
+				break;
+			case 2:
+				cout << "Digite o id do usuario: ";
+				getline(cin, input);
+				searchUserReviews(stoi(input));
+				break;
+			case 3:
+				cout << "Digite o genero: ";
+				getline(cin, genre);
+				cout << "Digite o número de filmes a exibir: ";
+				cin >> max;
+				cin.ignore();
+				searchbyGenres(genre, max);
+				break;
+			case 4:
+				cout << "Digite a tag: ";
+				getline(cin, input);
+				searchbyTags(input);
+				break;
+			case 5:
+				quit = true;
+				break;
+			default:
+				cout << "Burro!" << endl;
+		}
+
+	} while (!quit);
 	
 
 	id = 1;
