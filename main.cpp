@@ -537,15 +537,72 @@ void searchbyGenres(const string& genre, int maxResults)
 	}
 }
 
-void searchbyTags()
+void searchby2Tags(const string& tag1, const string& tag2)
 {
-	cout << "placeholder";
+	list<int> list1 = searchTag(tag1);
+	list<int> list2 = searchTag(tag2);
+
+	list<int> intersec;
+
+	for (int id1 : list1)
+	{
+		for (int id2 : list2)
+		{
+			if (id1 == id2)
+			{
+				intersec.push_back(id1);
+				break;
+			}
+		}
+	}
+
+	if (intersec.empty())
+	{
+		cout << "Nenhum filme encontrado" << endl;
+		return;
+	}
+
+	list<Movie*> results;
+	for (int id : intersec)
+	{
+		if (Movie* m = findMovie(id))
+		{
+			results.push_back(m);
+		}
+	}
+
+	results.sort([](Movie* a, Movie* b)
+	{
+		return a->getAverage() > b->getAverage();
+	});
+
+	cout << left
+	     << setw(8)  << "ID"
+	     << setw(45) << "Title"
+	     << setw(35) << "Genres"
+	     << setw(6)  << "Year"
+	     << setw(10) << "Rating"
+	     << setw(6)  << "Count" << endl;
+
+	cout << string(110, '-') << endl;
+
+	for (Movie* m : results)
+	{
+		cout << left
+		     << setw(8)  << m->getId()
+		     << setw(45) << m->getTitle().substr(0, 43)
+		     << setw(35) << m->getGenres().substr(0, 33)
+		     << setw(6)  << m->getYear()
+		     << setw(10) << fixed << setprecision(6) << m->getAverage()
+		     << setw(6)  << m->getReviewCount()
+		     << endl;
+	}
 }
 
 int main() 
 {
 	int id, sel, max;
-	string prefix, tag, genre, input;
+	string prefix, tag1, tag2, genre, input;
 	bool quit = false;
 
 	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
@@ -585,9 +642,14 @@ int main()
 				searchbyGenres(genre, max);
 				break;
 			case 4:
-				cout << "Digite a tag: ";
+				cout << "Digite a  primeira tag: ";
 				getline(cin, input);
-				searchbyTags(input);
+				tag1 = input.substr(1, input.length() - 2);
+				cout << "Digite a  segunda tag: ";
+				getline(cin, input);
+				tag2 = input.substr(1, input.length() - 2);
+
+				searchby2Tags(tag1, tag2);
 				break;
 			case 5:
 				quit = true;
@@ -598,7 +660,7 @@ int main()
 
 	} while (!quit);
 	
-
+	/*
 	id = 1;
 	if (Movie* m = findMovie(id))
 	{
@@ -609,7 +671,7 @@ int main()
 	{
 		cout << "Filme com ID " << id << " não encontrado.\n";
 	}
-
+	*/
 	/*
 	cout << "Digite um prefixo para buscar filmes: ";
 	getline(cin, prefix);
@@ -633,7 +695,7 @@ int main()
 		}
 	}
 	*/
-
+	/*
 	cout << "\nDigite um ID de usuário para ver seus filmes avaliados: ";
 	int uid;
 	cin >> uid;
@@ -645,5 +707,6 @@ int main()
 	consultaTag(tag);
 
 	return 0;
+	*/
 }
 
