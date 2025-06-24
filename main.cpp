@@ -5,8 +5,11 @@
 #include <filesystem>
 #include "csv-parser\parser.hpp"
 #include <iomanip>
+#include <chrono>
+#include <limits>
 using namespace std;
 using namespace aria::csv;
+using namespace std::chrono;
 
 //---|TRIE Tree|---
 
@@ -191,22 +194,7 @@ Movie* findMovie(int id)
 
 void loadMovies(const string& path)
 {
-	//Teste
 	std::ifstream file(path);
-	if (!file.is_open()) {
-    	std::cerr << "Erro ao abrir o arquivo: " << path << std::endl;
-    	return;
-	}
-
-	file.peek(); // Força leitura
-
-	if (file.fail()) {
-    	std::cerr << "Arquivo está corrompido ou ilegível: " << path << std::endl;
-    	return;
-	}
-	//Fim do teste
-
-	//std::ifstream file(path);
 	CsvParser parser(file);
 	bool first = true;
 	for (auto& row : parser)
@@ -223,8 +211,6 @@ void loadMovies(const string& path)
 
 		insertMovie(id, title, genres, year);
 		insertTitle(trieRoot, title, id);
-		//Teste
-		cout << "Inserido: " << title << " (ID: " << id << ")\n";
 	}
 
 }
@@ -240,7 +226,7 @@ void loadRatings(const string& path)
 	file.peek();
 	if (file.fail())
 	{
-		cerr << "Arquivo está corrompido ou ilegível: " << path << endl;
+		cerr << "Arquivo esta corrompido ou ilegivel: " << path << endl;
 		return;
 	}
 	CsvParser parser(file);
@@ -267,7 +253,7 @@ void loadRatings(const string& path)
 void consultaUsuario(int userId)
 {
 	int i = hashFunction(userId);
-	cout << "Filmes avaliados pelo usuário" << userId << ":\n";
+	cout << "Filmes avaliados pelo usuario" << userId << ":\n";
 	for (auto& p : userRatingsTable[i])
 	{
 		if (Movie* m = findMovie(p.first))
@@ -355,6 +341,33 @@ void consultaTag(const string& tag)
 		{
 			cout << "- " << m->getTitle() << " (" << m->getYear() << ")\n";
 		}
+	}
+}
+
+string stringtoLower(const string& str)
+{
+	string result = str;
+	for (char& c : result)
+	{
+		c = tolower(c);
+	}
+	return result;
+}
+
+int readInt(const string& prompt)
+{
+	int n;
+	while (true)
+	{
+		cout << prompt;
+		if (cin >> n)
+		{
+			cin.ignore(numeric_limits<streamsize>::max(), '\n');
+			return n;
+		}
+		cin.clear();
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		cout << "Entrada invalida, tente novamente." << endl;
 	}
 }
 
@@ -484,13 +497,15 @@ void searchUserReviews(int userId)
 
 void searchbyGenres(const string& genre, int maxResults)
 {
+	string genreLower = stringtoLower(genre);
 	list<Movie*> results;
 
 	for (int i = 0; i < HASHSIZE; i++)
 	{
 		for (Movie* m : moviesHashTable[i])
 		{
-			if (m->getReviewCount() >= 1000 && m->getGenres().find(genre) != string::npos)
+			string moviesGenresLower = stringtoLower(m->getGenres());
+			if (m->getReviewCount() >= 1000 && moviesGenresLower.find(genreLower) != string::npos)
 			{
 				results.push_back(m);
 			}
@@ -541,8 +556,15 @@ void searchby2Tags(const string& tag1, const string& tag2)
 {
 	list<int> list1 = searchTag(tag1);
 	list<int> list2 = searchTag(tag2);
-
 	list<int> intersec;
+	bool alreadyExists;
+
+	if (list1.empty() || list2.empty()) 
+	{
+		cout << "Uma das tags não retornou nenhum filme.\n";
+		return;
+	}
+
 
 	for (int id1 : list1)
 	{
@@ -550,7 +572,19 @@ void searchby2Tags(const string& tag1, const string& tag2)
 		{
 			if (id1 == id2)
 			{
-				intersec.push_back(id1);
+				alreadyExists = false;
+				for (int existingId : intersec)
+				{
+					if (existingId == id1)
+					{
+						alreadyExists = true;
+						break;
+					}
+				}
+				if (!alreadyExists)
+				{
+					intersec.push_back(id1);
+				}
 				break;
 			}
 		}
@@ -601,25 +635,45 @@ void searchby2Tags(const string& tag1, const string& tag2)
 
 int main() 
 {
+	setlocale(LC_ALL, "");
+
 	int id, sel, max;
 	string prefix, tag1, tag2, genre, input;
 	bool quit = false;
+	auto start = high_resolution_clock::now();
 
-	loadMovies("../Data/dados-trabalho-pequeno/movies.csv");
-	loadRatings("../Data/dados-trabalho-pequeno/miniratings.csv");
-	loadTags("../Data/dados-trabalho-pequeno/tags.csv");
+	cout << "-----------------------------------------------------------------------------" << endl 
+		 << "-------------------------------Movienator 3000-------------------------------" << endl
+		 << "-----------------------------------------------------------------------------" << endl;
+
+	cout << "Aguarde enquanto os dados sao carregados:" << endl;
+	
+	cout << "Carregando Filmes: ";
+	loadMovies("../Data/dados-trabalho-completo/movies.csv");
+	cout << "Concluido" << endl;
+	cout << "Carregando reviews de usuarios: ";
+	loadRatings("../Data/dados-trabalho-completo/ratings.csv");
+	cout << "Concluido" << endl;
+	cout << "Carregando tags de usuarios: ";
+	loadTags("../Data/dados-trabalho-completo/tags.csv");
+	cout << "Concluido" << endl;
+
+	auto end = high_resolution_clock::now();
+	auto duration = duration_cast<seconds>(end - start);
+	cout << "Dados carregados em " << duration.count() << "segundos." << endl << endl;
+
 
 	//------| Menu |------
 
 	do
 	{
-		cout << "1) Pesquisar um filme" << endl;
-		cout << "2) Pesquisar as reviews de um usuário" << endl;
-		cout << "3) Pesquisar por genêro" << endl;
-		cout << "4) Pesquisar por tags" << endl;
+		cout << "\n1) Pesquisar um filme" << endl;
+		cout << "2) Pesquisar as reviews de um usuario" << endl;
+		cout << "3) Pesquisar por genero" << endl;
+		cout << "4) Pesquisar por tags (Formato: 'tag' || Ex: 'feel-good' 'predictable')" << endl;
 		cout << "5) Sair" << endl;
-		cin >> sel;
-		cin.ignore();
+		
+		sel = readInt("Escolha: ");
 
 		switch (sel)
 		{
@@ -629,84 +683,33 @@ int main()
 				prefixSearch(prefix);
 				break;
 			case 2:
-				cout << "Digite o id do usuario: ";
-				getline(cin, input);
-				searchUserReviews(stoi(input));
+				id = readInt("Digite o id do usuario: ");
+				searchUserReviews(id);
 				break;
 			case 3:
 				cout << "Digite o genero: ";
 				getline(cin, genre);
-				cout << "Digite o número de filmes a exibir: ";
-				cin >> max;
-				cin.ignore();
+				max = readInt("Digite o numero de filmes a exibir: ");
 				searchbyGenres(genre, max);
 				break;
 			case 4:
-				cout << "Digite a  primeira tag: ";
+				cout << "Digite a  primeira tag (entre aspas 'tag'): ";
 				getline(cin, input);
 				tag1 = input.substr(1, input.length() - 2);
-				cout << "Digite a  segunda tag: ";
+				cout << "Digite a  segunda tag (entre aspas 'tag'): ";
 				getline(cin, input);
 				tag2 = input.substr(1, input.length() - 2);
-
 				searchby2Tags(tag1, tag2);
 				break;
 			case 5:
 				quit = true;
 				break;
 			default:
-				cout << "Burro!" << endl;
+				cout << "Entrada invalida, tente novamente" << endl;
 		}
 
 	} while (!quit);
-	
-	/*
-	id = 1;
-	if (Movie* m = findMovie(id))
-	{
-		cout << "Filme: " << m->getTitle() << " (" << m->getYear() << ")" << endl;
-		cout << "Nota média: " << m->getAverage() << endl;
-	}
-	else
-	{
-		cout << "Filme com ID " << id << " não encontrado.\n";
-	}
-	*/
-	/*
-	cout << "Digite um prefixo para buscar filmes: ";
-	getline(cin, prefix);
-
-	list<int> resultados;
-	findPrefix(trieRoot, prefix, resultados);
-
-	if (resultados.empty())
-	{
-		cout << "Nenhum filme encontrado com esse prefixo" << endl;
-	}
-	else
-	{
-		cout << "Filmes encontrados: " << endl;
-		for (int ID : resultados)
-		{
-			if (Movie* m = findMovie(ID))
-			{
-				cout << "- " << m->getTitle() << " (" << m->getYear() << ")\n";
-			}
-		}
-	}
-	*/
-	/*
-	cout << "\nDigite um ID de usuário para ver seus filmes avaliados: ";
-	int uid;
-	cin >> uid;
-	cin.ignore();
-	consultaUsuario(uid);
-
-	cout << "\nDigite uma tag para buscar filmes: ";
-	getline(cin, tag);
-	consultaTag(tag);
 
 	return 0;
-	*/
 }
 
