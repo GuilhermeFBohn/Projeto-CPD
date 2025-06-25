@@ -32,6 +32,8 @@ struct TrieNode
 
 TrieNode* trieRoot = new TrieNode();
 
+// Receives the Trie root, a movie.title and movie.id. 
+//Inserts a movie's title into the Trie
 void insertTitle(TrieNode* root, const string& title, int movieId)
 {
 	TrieNode* node = root;
@@ -52,6 +54,8 @@ void insertTitle(TrieNode* root, const string& title, int movieId)
 	node->movieId = movieId;
 }
 
+// Receives a Trie node and a list of movie.ids
+// Inserts the ids of the Trie into the list
 void listIds(TrieNode* node, list<int>& ids)
 {
 	if (node == nullptr)
@@ -73,6 +77,8 @@ void listIds(TrieNode* node, list<int>& ids)
 
 }
 
+// Receives the Trie root, a string containing a prefix of a movie.title, and a list of movie.ids
+// Looks for the prefix in the list of movie.ids
 void findPrefix(TrieNode* root, const string& prefix, list<int>& ids)
 {
 	TrieNode* node = root;
@@ -88,7 +94,7 @@ void findPrefix(TrieNode* root, const string& prefix, list<int>& ids)
 	listIds(node, ids);
 }
 
-
+//------| MOVIE CLASS |------
 
 class Movie
 {
@@ -165,12 +171,15 @@ list<pair<int, float>> userRatingsTable[HASHSIZE];
 const int TAG_HASHSIZE = 10007;
 list<pair<string, list<int>>> tagsTable[TAG_HASHSIZE];
 
-//Functions
+//Hashtable Functions
+
+//Turns a movie.id into a hash
 int hashFunction(int id)
 {
 	return id % HASHSIZE;
 }
-
+//Receives a movie's information
+//Transforms the information into a movie object and inserts it into the hash table
 void insertMovie(int id, string title, string genres, int year)
 {
 	int i = hashFunction(id);
@@ -178,7 +187,8 @@ void insertMovie(int id, string title, string genres, int year)
 
 	moviesHashTable[i].push_back(newMovie);
 }
-
+//Receives a moive.id
+//Searches for the movie in the hash table
 Movie* findMovie(int id)
 {
 	int i = hashFunction(id);
@@ -192,6 +202,8 @@ Movie* findMovie(int id)
 	return nullptr;
 }
 
+//Receives a path to a file
+//Processes the information in the file and adds it to a hashtable of movies and a Trie of movie titles
 void loadMovies(const string& path)
 {
 	std::ifstream file(path);
@@ -214,7 +226,9 @@ void loadMovies(const string& path)
 	}
 
 }
-
+//Receives a path to a file
+//Processes the information, adds it to a hashtable of userRatings and and the rating's average
+//to the corresponding movie
 void loadRatings(const string& path)
 {
 	ifstream file(path);
@@ -249,8 +263,8 @@ void loadRatings(const string& path)
 		}
 	}
 }
-
-void consultaUsuario(int userId)
+//Outdated
+void consultUser(int userId)
 {
 	int i = hashFunction(userId);
 	cout << "Filmes avaliados pelo usuario" << userId << ":\n";
@@ -262,14 +276,15 @@ void consultaUsuario(int userId)
 		}
 	}
 }
-
+//Turns a tag into a hash
 int hashTag(const string& tag)
 {
 	unsigned long hash = 5301;
 	for (char c : tag) hash = ((hash << 5) + hash) + c;
 	return hash % TAG_HASHSIZE;
 }
-
+//Receives a tag and a movie.id
+//Inserts it into a Hash table
 void insertTag(const string& tag, int movieId)
 {
 	int i = hashTag(tag);
@@ -283,7 +298,7 @@ void insertTag(const string& tag, int movieId)
 	}
 	tagsTable[i].push_back({tag, {movieId}});
 }
-
+//Receives a tag and returns a list of movies with the tag
 list<int> searchTag(const string& tag)
 {
 	int i = hashTag(tag);
@@ -296,7 +311,8 @@ list<int> searchTag(const string& tag)
 	}
 	return {};
 }
-
+//Receives a path to a file
+//Processes the information and adds it into a hash table
 void loadTags(const string& path)
 {
 	ifstream file(path);
@@ -325,8 +341,8 @@ void loadTags(const string& path)
 		insertTag(tag, movieId);
 	}
 }
-
-void consultaTag(const string& tag)
+//Outdated
+void consultTag(const string& tag)
 {
 	list<int> movies = searchTag(tag);
 	if (movies.empty())
@@ -343,7 +359,7 @@ void consultaTag(const string& tag)
 		}
 	}
 }
-
+//Receives a string and lowercases the chars of the string
 string stringtoLower(const string& str)
 {
 	string result = str;
@@ -353,7 +369,7 @@ string stringtoLower(const string& str)
 	}
 	return result;
 }
-
+// receives a string inputed by the user, reads it and treats errors
 int readInt(const string& prompt)
 {
 	int n;
